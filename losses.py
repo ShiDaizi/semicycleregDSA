@@ -1,8 +1,9 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import math
-
+import config
 
 class NCC:
     """
@@ -13,23 +14,19 @@ class NCC:
         self.win = win
 
     def loss(self, y_true, y_pred):
-
         Ii = y_true
         Ji = y_pred
 
         # get dimension of volume
-        # assumes Ii, Ji are sized [batch_size, *vol_shape, nb_feats]
+        # assumes Ii, Ji are sized [batch_size, *vol_shape, nb_feats]?
         ndims = len(list(Ii.size())) - 2
         assert ndims in [1, 2, 3], "volumes should be 1 to 3 dimensions. found: %d" % ndims
-
         # set window size
         win = [9] * ndims if self.win is None else self.win
 
         # compute filters
-        sum_filt = torch.ones([1, 1, *win]).to("cuda")
-
+        sum_filt = torch.ones([1, 1, *win]).to(config.DEVICE)
         pad_no = math.floor(win[0] / 2)
-
         if ndims == 1:
             stride = (1)
             padding = (pad_no)
@@ -40,21 +37,19 @@ class NCC:
             stride = (1, 1, 1)
             padding = (pad_no, pad_no, pad_no)
 
-        # get convolution function
+        # compute CC squares
         conv_fn = getattr(F, 'conv%dd' % ndims)
 
-        # compute CC squares
         I2 = Ii * Ii
         J2 = Ji * Ji
         IJ = Ii * Ji
-
         I_sum = conv_fn(Ii, sum_filt, stride=stride, padding=padding)
         J_sum = conv_fn(Ji, sum_filt, stride=stride, padding=padding)
         I2_sum = conv_fn(I2, sum_filt, stride=stride, padding=padding)
         J2_sum = conv_fn(J2, sum_filt, stride=stride, padding=padding)
         IJ_sum = conv_fn(IJ, sum_filt, stride=stride, padding=padding)
 
-        win_size = np.prod(win)
+        win_size = np.prod(win) #return product
         u_I = I_sum / win_size
         u_J = J_sum / win_size
 
@@ -63,9 +58,7 @@ class NCC:
         J_var = J2_sum - 2 * u_J * J_sum + u_J * u_J * win_size
 
         cc = cross * cross / (I_var * J_var + 1e-5)
-
         return -torch.mean(cc)
-
 
 class MSE:
     """
@@ -74,7 +67,6 @@ class MSE:
 
     def loss(self, y_true, y_pred):
         return torch.mean((y_true - y_pred) ** 2)
-
 
 class Dice:
     """
@@ -89,7 +81,6 @@ class Dice:
         dice = torch.mean(top / bottom)
         return -dice
 
-
 class Grad:
     """
     N-D gradient loss.
@@ -99,19 +90,37 @@ class Grad:
         self.penalty = penalty
         self.loss_mult = loss_mult
 
+    def _diffs(self, y):
+        vol_shape = [n for n in y.shape][2:]
+        ndims = len(vol_shape)
+
+        df = [None] * ndims #save each dim grad
+        for i in range(ndims):
+            d = i + 2
+            # permute dimensions
+            r = [d, *range(0, d), *range(d + 1, ndims + 2)]
+            y = y.permute(r)
+            dfi = y[1:, ...] - y[:-1, ...]
+
+            # permute back
+            # note: this might not be necessary for this loss specifically,
+            # since the results are just summed over anyway.
+            r = [*range(d - 1, d + 1), *reversed(range(1, d - 1)), 0, *range(d + 1, ndims + 2)]
+            df[i] = dfi.permute(r)
+
+        return df
+
     def loss(self, _, y_pred):
-        dy = torch.abs(y_pred[:, :, 1:, :, :] - y_pred[:, :, :-1, :, :])
-        dx = torch.abs(y_pred[:, :, :, 1:, :] - y_pred[:, :, :, :-1, :])
-        dz = torch.abs(y_pred[:, :, :, :, 1:] - y_pred[:, :, :, :, :-1])
+        if self.penalty == 'l1':
+            dif = [torch.abs(f) for f in self._diffs(y_pred)]
+        else:
+            assert self.penalty == 'l2', 'penalty can only be l1 or l2. Got: %s' % self.penalty
+            dif = [f * f for f in self._diffs(y_pred)]
 
-        if self.penalty == 'l2':
-            dy = dy * dy
-            dx = dx * dx
-            dz = dz * dz
-
-        d = torch.mean(dx) + torch.mean(dy) + torch.mean(dz)
-        grad = d / 3.0
+        df = [torch.mean(torch.flatten(f, start_dim=1), dim=-1) for f in dif] #start_dim=1 to flatten each dim and mean each dim (dim=-1)
+        grad = sum(df) / len(df)
 
         if self.loss_mult is not None:
             grad *= self.loss_mult
-        return grad
+
+        return grad.mean()
