@@ -64,8 +64,8 @@ class DSADataset(Dataset):
             M_edge = mm.dilation(mm.closing(tmp, kernel), kernel) - mm.closing(tmp, kernel)
             F_edge = ((F_edge - F_edge.min()) / (F_edge.max() - F_edge.min())).float()
             M_edge = ((M_edge - M_edge.min()) / (M_edge.max() - M_edge.min())).float()
-            F_edge = (F_edge > 0.04).float()
-            M_edge = (M_edge > 0.04).float()
+            #F_edge = (F_edge > 0.04).float()
+            #M_edge = (M_edge > 0.04).float()
             img += [F_edge.squeeze(0)] + [M_edge.squeeze(0)]
 
         return img

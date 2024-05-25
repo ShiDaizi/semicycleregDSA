@@ -124,3 +124,13 @@ class Grad:
             grad *= self.loss_mult
 
         return grad.mean()
+
+
+def test():
+    M = MSE()
+    x = torch.randn((5,5))
+    y = torch.randn((5,5))
+    print(M.loss(x, y))
+
+if __name__ == '__main__':
+    test()

@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
 import layers
+import config
 from modelio import LoadableModel, store_config_args
 class ConvBlock(nn.Module):
     """
@@ -35,7 +36,7 @@ class Unet(nn.Module):
     def __init__(self,
                  inshape=None,
                  infeats=None,
-                 nb_features=16,
+                 nb_features=None,
                  nb_levels=4,
                  max_pool=2,
                  feat_mult=2,
@@ -80,8 +81,6 @@ class Unet(nn.Module):
                 np.repeat(feats[:-1], nb_conv_per_level),
                 np.repeat(np.flip(feats), nb_conv_per_level)
             ]
-        elif nb_levels is not None:
-            raise ValueError('cannot use nb_levels if nb_features is not an integer')
 
         # extract any surplus (full resolution) decoder convolutions
         enc_nf, dec_nf = nb_features
@@ -223,7 +222,7 @@ class VxmDense(nn.Module):
         self.flow = Conv(self.unet_model.final_nf, ndims, kernel_size=3, padding=1)
 
         # init flow layer with small weights and bias
-        self.flow.weight = nn.Parameter(Normal(0, 1e-5).sample(self.flow.weight.shape))
+        self.flow.weight = nn.Parameter(Normal(0, 3).sample(self.flow.weight.shape))
         self.flow.bias = nn.Parameter(torch.zeros(self.flow.bias.shape))
 
         # probabilities are not supported in pytorch
@@ -306,11 +305,12 @@ class VxmDense(nn.Module):
 
 
 def test():
-    img_size=256
-    x = torch.randn((5, 1, img_size, img_size))
-    model = VxmDense(inshape=(256, 256), nb_unet_features=16)
-    out = model(x, x)
-    print(out[0].shape)
+    h, w = config.inshape
+    x = torch.randn((5, 1, h, w))
+    model = VxmDense(inshape=(h, w), nb_unet_features=config.nb_unet_features)
+    modelU = Unet(inshape=(h, w), infeats=1, nb_features=config.nb_gen_features)
+    out, a = model(x, x)
+    print(out.shape)
 
 if __name__ == '__main__':
     test()
