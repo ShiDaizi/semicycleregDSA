@@ -7,15 +7,16 @@ import random
 import os
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-BATCH_SIZE = 2
-LEARNING_RATE = 1e-5
+BATCH_SIZE = 16
+LEARNING_RATE_G = 1e-4
+LEARNING_RATE_D = 1e-2
 LAMBDA_DISC = 1
-LAMBDA_GRAD = 1e-7
-LAMBDA_ID = 1000
-LAMBDA_EDGE = 10000
-LAMBDA_FLOW = 100
+LAMBDA_GRAD = 10
+LAMBDA_ID = 100
+LAMBDA_EDGE = 1000
+LAMBDA_FLOW = 10
 NUM_WORKS = 0
-NUM_EPOCHS = 20
+NUM_EPOCHS = 500
 LOAD_MODEL = False
 SAVE_MODEL = True
 CHECKPOINT_GEN_R = './checkpoints/GEN_R.pth.tar'
@@ -24,17 +25,17 @@ CHECKPOINT_DISC_R = './checkpoints/DISC_R.pth.tar'
 CHECKPOINT_DISC_B = './checkpoints/DISC_B.pth.tar'
 inshape = (704, 704)
 nb_unet_features = [[16, 32, 32, 32], [32, 32, 32, 16, 16]]
-nb_gen_features = [[16, 32, 32], [32, 32, 16, 8, 1]]
-nb_disc_features = [16, 32, 64, 64]
-ROOT_F = './data/F_skull'
-ROOT_M = './data/M_skull'
+nb_gen_features = [[32, 64, 128, 128], [128, 128, 64, 32, 1]]
+nb_disc_features = [32, 64, 128]
+ROOT_F = './data/F_1'
+ROOT_M = './data/M_1'
 
 
 transform = A.Compose(
     [
         A.Resize(height=750, width=750),
-        A.HorizontalFlip(p=0.5),
-        A.Rotate(limit=0.5, interpolation=cv2.INTER_LINEAR, p=0.5),
+        A.HorizontalFlip(p=0),
+        A.Rotate(limit=0.5, interpolation=cv2.INTER_LINEAR, p=0),
         A.Normalize(mean=0.5, std=0.5, max_pixel_value=255),
         A.CenterCrop(height=inshape[0], width=inshape[1]),
         ToTensorV2(), #ToTensorV2() not convert to [0, 1]

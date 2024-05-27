@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import config
 
 class Block(nn.Module):
     def __init__(self, in_channels, out_channels, stride):
@@ -35,8 +36,8 @@ class Discriminator(nn.Module):
 
 
 def test():
-    x = torch.randn((5, 3, 712, 712))
-    model = Discriminator(in_channels=3, features=[16, 32, 64, 64, 128])
+    x = torch.randn((5, 3, 704, 704))
+    model = Discriminator(in_channels=3, features=config.nb_disc_features)
     out = model(x)
     print(out.shape)
 

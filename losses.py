@@ -60,6 +60,22 @@ class NCC:
         cc = cross * cross / (I_var * J_var + 1e-5)
         return -torch.mean(cc)
 
+class CrossEntropyLoss:
+    def __init__(self, **kwargs):
+        self.loss = nn.BCELoss(**kwargs)
+
+    def loss(self, y_pred, y_true):
+        return self.loss(y_pred, y_true)
+
+
+class L1Loss:
+    """
+    L1 loss
+    """
+
+    def loss(self, y_true, y_pred):
+        return torch.mean(torch.abs(y_true - y_pred))
+
 class MSE:
     """
     Mean squared error loss.

@@ -35,6 +35,7 @@ class DSADataset(Dataset):
         F_path = os.path.join(self.root_F, F_img)
         M_path = os.path.join(self.root_M, M_img)
 
+
         if os.path.splitext(F_img)[-1] == '.dcm':
             F_img = np.uint8(pydicom.dcmread(F_path).pixel_array)
             M_img = np.uint8(pydicom.dcmread(M_path).pixel_array)
@@ -46,7 +47,7 @@ class DSADataset(Dataset):
         M_img = cv2.bilateralFilter(M_img, d=15, sigmaColor=75, sigmaSpace=75)
 
         if self.transform:
-            F_img = A.Rotate(limit=1.0, interpolation=cv2.INTER_LINEAR, p=0.3)(image=F_img)['image']
+            #F_img = A.Rotate(limit=1.0, interpolation=cv2.INTER_LINEAR, p=0)(image=F_img)['image']
             augmentations = self.transform(image=F_img, image0=M_img)
             F_img = augmentations['image']
             M_img = augmentations['image0']
@@ -66,13 +67,50 @@ class DSADataset(Dataset):
             M_edge = ((M_edge - M_edge.min()) / (M_edge.max() - M_edge.min())).float()
             #F_edge = (F_edge > 0.04).float()
             #M_edge = (M_edge > 0.04).float()
+
+
+
+            F_edge = (F_img.permute(1, 2, 0).data.cpu().numpy() * 0.5 + 0.5) * 255
+            M_edge = (M_img.permute(1, 2, 0).data.cpu().numpy() * 0.5 + 0.5) * 255
+            MF = M_edge - F_edge
+            MF = (MF - MF.min()) / (MF.max() - MF.min()) * 255
+            MF = cv2.Canny(np.uint8(MF), 5, 10)
+            tmp = cv2.Canny(np.uint8(F_edge), 5, 30)
+
+            mask = MF - tmp
+            mask = np.array(mask > 0.5)
+
+            MF -= tmp
+            MF = (MF > 0.5)
+
+            F_edge = cv2.Canny(np.uint8(F_edge), 10, 15)
+
+            F_edge = transforms.ToTensor()(F_edge)
+            M_edge = cv2.Canny(np.uint8(M_edge), 5, 50)
+
+            mask = mask - M_edge
+            plt.imshow(mask, cmap='gray')
+            plt.show()
+            mask = transforms.ToTensor()(mask)
+
+            M_edge = transforms.ToTensor()(M_edge)
+
+            M_edge += MF
+            M_edge = (M_edge > 0.5).float()
+
+            F_edge.unsqueeze_(0)
+            M_edge.unsqueeze_(0)
+            kernel = torch.zeros(9, 9)
+            F_edge = mm.closing(F_edge, kernel)
+            kernel = torch.zeros(7, 7)
+            M_edge = mm.closing(M_edge, kernel)
             img += [F_edge.squeeze(0)] + [M_edge.squeeze(0)]
 
         return img
 
 def test():
-    root_F = './data/F_skull'
-    root_M = './data/M_skull'
+    root_F = './data/F_1'
+    root_M = './data/M_1'
     dataset = DSADataset(root_F, root_M, transform=config.transform, edge_require=True)
     loader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=config.NUM_WORKS, pin_memory=True)
     F, M, F_edge, M_edge = next(iter(loader))

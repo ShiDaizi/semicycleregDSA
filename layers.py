@@ -16,7 +16,7 @@ class SpatialTransformer(nn.Module):
 
     def forward(self, src, flow):
         new_locs = self.grid + flow
-        shape = flow.shape[2:] #grid shape
+        shape = flow.shape[2:] #grid shapes
 
         #resample to [-1, 1] to use F.grid_sample()
         for i in range(len(shape)):
@@ -33,7 +33,7 @@ class SpatialTransformer(nn.Module):
 
 def test():
     TPS = SpatialTransformer((3,3))
-    src = torch.randn(1, 1, 3, 3)
+    src = torch.randn(1, 2, 3, 3)
     flow = torch.Tensor([
         [[0, 0.1, 0], [0, 0, 0], [0, 0, 0]],
         [[0, 0.1, 0], [0, 0, 0], [0, 0, 0]]

@@ -15,11 +15,14 @@ class ConvBlock(nn.Module):
         super(ConvBlock, self).__init__()
 
         Conv = getattr(nn, 'Conv%dd' % ndims)
+        bn = getattr(nn, 'InstanceNorm%dd' % ndims)
         self.main = Conv(in_channels, out_channels, 3, stride, 1)
+        self.bn = bn(out_channels)
         self.activation = nn.LeakyReLU(0.2)
 
     def forward(self, x):
         out = self.main(x)
+        out = self.bn(out)
         out = self.activation(out)
         return out
 
@@ -222,7 +225,7 @@ class VxmDense(nn.Module):
         self.flow = Conv(self.unet_model.final_nf, ndims, kernel_size=3, padding=1)
 
         # init flow layer with small weights and bias
-        self.flow.weight = nn.Parameter(Normal(0, 3).sample(self.flow.weight.shape))
+        self.flow.weight = nn.Parameter(Normal(0, 0.5).sample(self.flow.weight.shape))
         self.flow.bias = nn.Parameter(torch.zeros(self.flow.bias.shape))
 
         # probabilities are not supported in pytorch
@@ -303,6 +306,13 @@ class VxmDense(nn.Module):
         else:
             return y_source, pos_flow
 
+class Tps(nn.Module):
+    def __init__(self, inshape):
+        super(Tps, self).__init__()
+        self.transformer = layers.SpatialTransformer(inshape)
+
+    def forward(self, src, flow):
+        return self.transformer(src, flow)
 
 def test():
     h, w = config.inshape
