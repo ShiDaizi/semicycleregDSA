@@ -69,7 +69,7 @@ class DSADataset(Dataset):
             #M_edge = (M_edge > 0.04).float()
 
 
-
+            '''    
             F_edge = (F_img.permute(1, 2, 0).data.cpu().numpy() * 0.5 + 0.5) * 255
             M_edge = (M_img.permute(1, 2, 0).data.cpu().numpy() * 0.5 + 0.5) * 255
             MF = M_edge - F_edge
@@ -104,6 +104,7 @@ class DSADataset(Dataset):
             F_edge = mm.closing(F_edge, kernel)
             kernel = torch.zeros(7, 7)
             M_edge = mm.closing(M_edge, kernel)
+            '''
             img += [F_edge.squeeze(0)] + [M_edge.squeeze(0)]
 
         return img
