@@ -88,7 +88,7 @@ def train_fn(gen_R, gen_B, disc_R, disc_B, loader, opt_gen, opt_disc, tps, epoch
                    #+ L1.loss(F, Mrb)
                    #+ L1.loss(F, Mbr)
                    #+ L1.loss(M, Fr)
-                   + L1.loss(M * Fr_edge, F * Fr_edge)
+                   + L1.loss(M * Fr_edge, Fr * Fr_edge)
                    + L1.loss(M * (1 - M_edge), Fr * (1 - M_edge))
                   )
         Grad_loss = Grad.loss(flowr, flowr) #+ Grad.loss(flowbr, flowbr)

@@ -1,6 +1,7 @@
 import torch
 import sys
 import os
+import cv2
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import torchvision.transforms as transforms
@@ -15,6 +16,12 @@ import discriminator
 import generator
 from dataset import DSADataset
 import matplotlib.pyplot as plt
+import numpy as np
+
+def minmaxscaler(data):
+    min = data.min()
+    max = data.max()
+    return (data - min)/(max-min)
 
 def show():
     gen_R = Net.VxmDense(inshape=config.inshape, nb_unet_features=config.nb_unet_features, bidir=True)
@@ -88,6 +95,10 @@ def show():
     Mrb = Mrb.squeeze(0).permute(1, 2, 0).data.cpu().numpy()
     Fb = Fb.squeeze(0).permute(1, 2, 0).data.cpu().numpy()
     Mb = Mb.squeeze(0).permute(1, 2, 0).data.cpu().numpy()
+
+    cv2.imwrite("m.jpg", (minmaxscaler((M)[20:-20, 20:-20]) * 255).astype(np.uint8))
+    cv2.imwrite("o.jpg", (minmaxscaler((M - F)[20:-20, 20:-20]) * 255).astype(np.uint8))
+    cv2.imwrite("r.jpg", (minmaxscaler((M - Fr)[20:-20, 20:-20]) * 255).astype(np.uint8))
 
     plt.figure(figsize=(12, 6))
     plt.subplot(2, 3, 1)

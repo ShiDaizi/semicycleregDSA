@@ -9,27 +9,25 @@ import os
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 BATCH_SIZE = 8
 LEARNING_RATE_G = 1e-3
-LAMBDA = 0.001
+LAMBDA = 0.0001
 NUM_WORKS = 0
 NUM_EPOCHS = 300
 LOAD_MODEL = False
 SAVE_MODEL = True
 CHECKPOINT_GEN = './checkpoints/GEN.pth.tar'
-inshape = (512, 512)
-#inshape = (704, 704)
-nb_unet_features = [[16, 32, 32, 32], [32, 32, 32, 16, 16]]
-nb_gen_features = [[8, 16, 32, 64, 128, 256, 512, 512], [32, 32, 32, 32, 32, 32, 32, 32, 16, 8, 1]]
-nb_disc_features = [32, 64, 128]
+#inshape = (512, 512)
+inshape = (736, 736)
+nb_unet_features = [[16, 32, 64, 64], [64, 64, 32, 16, 16]]
 ROOT_F = '../data/F_1'
 ROOT_M = '../data/M_1'
 
 
 transform = A.Compose(
     [
-        A.Resize(height=528, width=528),
-        A.HorizontalFlip(p=0),
-        A.Rotate(limit=0.5, interpolation=cv2.INTER_LINEAR, p=0),
-        A.Normalize(mean=0.5, std=0.5, max_pixel_value=255),
+        A.Resize(height=750, width=750),
+        # A.HorizontalFlip(p=0.5),
+        # A.Rotate(limit=0.5, interpolation=cv2.INTER_LINEAR, p=0.5),
+        A.Normalize(mean=0, std=1, max_pixel_value=255),
         A.CenterCrop(height=inshape[0], width=inshape[1]),
         ToTensorV2(), #ToTensorV2() not convert to [0, 1]
     ],

@@ -17,6 +17,7 @@ from dataset import DSADataset
 def train_fn(gen, loader, opt_gen, epoch):
     loop = tqdm(loader, desc=f"Training (Epoch {epoch}) | Generator Loss: {0.0:.4f} | Discriminator Loss: {0.0:.4f}", leave=True)
     L2 = losses.MSE()
+    NCC = losses.NCC()
     Grad = losses.Grad()
     L1 = losses.L1Loss()
     BCE = losses.CrossEntropyLoss()
@@ -26,20 +27,24 @@ def train_fn(gen, loader, opt_gen, epoch):
         F, M = img
         F = F.to(config.DEVICE)
         M = M.to(config.DEVICE)
-        Mg = gen(M)
-        sim_loss = L2.loss(Mg, M - F)
+        Fg, flow = gen(F, M)
+        reg_loss = Grad.loss(flow, flow)
+        Fg, flow = gen(Fg, M)
+        reg_loss += Grad.loss(flow, flow)
+        sim_loss = NCC.loss(Fg, M)
+        loss = sim_loss + config.LAMBDA * reg_loss
         opt_gen.zero_grad()
-        sim_loss.backward()
+        loss.backward()
         opt_gen.step()
 
-        loop.set_description(f"Training (Epoch {epoch}) | Generator Loss: {sim_loss.item():.4f}")
+        loop.set_description(f"Training (Epoch {epoch}) | Loss: {loss.item():.4f}")
 
 def init_weights(m):
     if isinstance(m, nn.Linear):
         torch.nn.init.xavier_uniform(m.weight)
-        m.bias.data.fill_(0.01)
+        m.bias.data.fill_(0.1)
 def main():
-    gen = Net.Extnet(inshape=config.inshape, infeats=1, nb_gen_features=config.nb_gen_features).to(config.DEVICE)
+    gen = Net.VxmDense(inshape=config.inshape, nb_unet_features=config.nb_unet_features).to(config.DEVICE)
     gen.apply(init_weights)
     opt_gen = optim.Adam(
         gen.parameters(),

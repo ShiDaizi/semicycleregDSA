@@ -43,11 +43,11 @@ class DSADataset(Dataset):
             F_img = np.uint8(Image.open(F_path).convert('L'))
             M_img = np.uint8(Image.open(M_path).convert('L'))
 
-        F_img = cv2.bilateralFilter(F_img, d=15, sigmaColor=75, sigmaSpace=75)
-        M_img = cv2.bilateralFilter(M_img, d=15, sigmaColor=75, sigmaSpace=75)
+        #F_img = cv2.bilateralFilter(F_img, d=15, sigmaColor=75, sigmaSpace=75)
+        #M_img = cv2.bilateralFilter(M_img, d=15, sigmaColor=75, sigmaSpace=75)
 
         if self.transform:
-            #F_img = A.Rotate(limit=1.0, interpolation=cv2.INTER_LINEAR, p=0)(image=F_img)['image']
+            # F_img = A.Rotate(limit=1.0, interpolation=cv2.INTER_LINEAR, p=0.5)(image=F_img)['image']
             augmentations = self.transform(image=F_img, image0=M_img)
             F_img = augmentations['image']
             M_img = augmentations['image0']

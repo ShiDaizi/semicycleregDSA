@@ -35,8 +35,8 @@ ROOT_M = '../data/M_1'
 transform = A.Compose(
     [
         A.Resize(height=528, width=528),
-        A.HorizontalFlip(p=0.5),
-        A.Rotate(limit=0.5, interpolation=cv2.INTER_LINEAR, p=0.5),
+        A.HorizontalFlip(p=0),
+        A.Rotate(limit=0.5, interpolation=cv2.INTER_LINEAR, p=0),
         A.Normalize(mean=0.5, std=0.5, max_pixel_value=255),
         A.CenterCrop(height=inshape[0], width=inshape[1]),
         ToTensorV2(), #ToTensorV2() not convert to [0, 1]
