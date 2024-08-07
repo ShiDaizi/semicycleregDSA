@@ -44,8 +44,8 @@ def show():
     F_edge = F_edge.squeeze(0).permute(1, 2, 0).data.cpu().numpy()
     M_edge = M_edge.squeeze(0).permute(1, 2, 0).data.cpu().numpy()
     Fg= Fg.squeeze(0).permute(1, 2, 0).data.cpu().numpy()
-
-
+    mask = (M - F > -2e-2)  # + (M - F < -0.3)
+    print(F.min(), F.max(), F.mean())
 
     plt.figure(figsize=(12, 6))
     plt.subplot(2, 3, 1)
@@ -58,15 +58,17 @@ def show():
     plt.imshow(M_edge, cmap='gray')
     plt.title('M_edge')
     plt.subplot(2, 3, 4)
-    plt.imshow(M - F, cmap='gray')
+    plt.imshow(M - F, cmap='gray', vmin=-0.3, vmax=0.3)
     plt.title('Original Subtracted')
     plt.subplot(2, 3, 5)
-    plt.imshow(M - Fg, cmap='gray')
+    plt.imshow(M - Fg, cmap='gray', vmin=-0.3, vmax=0.3)
     plt.title('Registed Subtracted')
     plt.subplot(2, 3, 6)
-    plt.imshow(Fg, cmap='gray')
-    plt.title('Fg')
+    plt.imshow(mask, cmap='gray')
+    plt.title('Mask')
+    plt.savefig('output.jpg')
     plt.show()
+    plt.close()
 
 if __name__ == '__main__':
     show()

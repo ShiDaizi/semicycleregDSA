@@ -14,7 +14,7 @@ import losses
 from dataset import DSADataset
 
 
-def train_fn(gen, loader, opt_gen, epoch):
+def train_fn(gen, loader, opt_gen, scheduler, epoch):
     loop = tqdm(loader, desc=f"Training (Epoch {epoch}) | Generator Loss: {0.0:.4f} | Discriminator Loss: {0.0:.4f}", leave=True)
     L2 = losses.MSE()
     NCC = losses.NCC()
@@ -22,20 +22,22 @@ def train_fn(gen, loader, opt_gen, epoch):
     L1 = losses.L1Loss()
     BCE = losses.CrossEntropyLoss()
 
-
-    for idx, img in enumerate(loop):
+    for img in loop:
         F, M = img
         F = F.to(config.DEVICE)
         M = M.to(config.DEVICE)
+        mask = (M - F > -1e-4).clone().detach().to(config.DEVICE)
         Fg, flow = gen(F, M)
         reg_loss = Grad.loss(flow, flow)
-        Fg, flow = gen(Fg, M)
-        reg_loss += Grad.loss(flow, flow)
-        sim_loss = NCC.loss(Fg, M)
+        sim_loss = L2.loss(mask * Fg, mask * M)
+        if (epoch > 20):
+            sim_loss += NCC.loss(Fg, M)
+
         loss = sim_loss + config.LAMBDA * reg_loss
         opt_gen.zero_grad()
         loss.backward()
         opt_gen.step()
+        scheduler.step()
 
         loop.set_description(f"Training (Epoch {epoch}) | Loss: {loss.item():.4f}")
 
@@ -51,7 +53,7 @@ def main():
         lr=config.LEARNING_RATE_G,
         betas=(0.5, 0.999),
     )
-
+    scheduler = optim.lr_scheduler.StepLR(opt_gen, step_size=500, gamma=0.5)
     if config.LOAD_MODEL:
         config.load_checkpoint(
             config.CHECKPOINT_GEN,
@@ -69,6 +71,7 @@ def main():
             gen,
             loader,
             opt_gen,
+            scheduler,
             epoch
         )
 
